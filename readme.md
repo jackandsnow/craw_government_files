@@ -9,7 +9,7 @@ The function named *'get_url_text()'* helps tp get the html text from a target u
 
 3.File Storage: The files crawled from one government website are saved as **TXT file** as you can see in the following picture. And the filenames are consistent with the names of notifications.
 
-![files.PNG](https://github.com/jackandsnow/neutral_network/raw/master/images/files.PNG)
+![files.PNG](https://github.com/jackandsnow/craw_government_files/raw/master/images/files.PNG)
 
 4.Examples: Here is an example in the *'craw_shenzhen_gov_files.py'* file, which is to *crawl files of Shenzhen government*. You just need to change the example file to crawl another government files according to its website structure.
 And maybe in the future, the author will provide more examples so that you can star this project for update.
