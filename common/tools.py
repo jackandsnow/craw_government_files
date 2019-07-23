@@ -3,7 +3,7 @@ import time
 
 import requests
 
-# use different agents to craw data, avoiding IP banned
+# use different agents to crawl data, avoiding IP banned
 agent = [
     'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1.2pre) Gecko/20070215 K-Ninja/2.1.1',
     'Mozilla/4.0 (compatible; MSIE 7.0b; Windows NT 5.2; .NET CLR 1.1.4322; .NET CLR 2.0.50727; InfoPath.2; .NET CLR 3.0.04506.30)',
