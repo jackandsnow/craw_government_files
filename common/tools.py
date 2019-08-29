@@ -1,7 +1,11 @@
 import random
 import time
 
+import docx
 import requests
+import pandas as pd
+
+from openpyxl import load_workbook
 
 # use different agents to crawl data, avoiding IP banned
 agent = [
@@ -28,28 +32,32 @@ agent = [
 ]
 
 
-def get_url_text(url, total=3):
+def get_html_text(url, params=None, proxies=None, total=3):
     """
     get the text of target url
     :param url: target url
-    :param total: repeat times if time out
-    :return: html text
+    :param params: params dict, like {'param1': 'value1', 'param2': 'value2'}
+    :param proxies: proxies dict, like {'http': 'proxy1', 'https': proxy2}, its keys are unchangeable
+    :param total: max repeat times if time out
+    :return: html text or None
     """
     try:
         headers = {'User-Agent': random.choice(agent)}
-        r = requests.get(url, headers=headers, timeout=5)
-    except Exception as e:
+        r = requests.get(url, params=params, proxies=proxies, headers=headers, timeout=5)
+    except requests.exceptions.ConnectionError:  # connection error
+        print('Connection Error:', url)
+        return None
+    except Exception:
         if total > 0:
-            time.sleep(5)
-            return get_url_text(url, total - 1)
-        return False
+            time.sleep(5)  # after 5 seconds continue to craw
+            return get_html_text(url, params, proxies, total - 1)
+        return None
     # get encodings of the website
     encodings = requests.utils.get_encodings_from_content(r.text)
     if len(encodings) == 0:
         r.encoding = 'gbk'
     else:
         r.encoding = encodings[0]
-    # return html text
     return r.text
 
 
@@ -64,9 +72,76 @@ def get_total_page_num(url, prefix, suffix, delimiter):
         eg. html structure like '<script>createPageHTML(50, 0, "index","htm",849);</script>'
         then prefix can be 'createPageHTML(', suffix can be ');</script>' and delimiter is ','
     """
-    html_page = get_url_text(url)
+    html_page = get_html_text(url)
     prev = html_page.split(prefix)[1]  # 截掉前半部分
     suff = prev.split(suffix)[0]  # 截掉后半部分
     page_num = suff.split(delimiter)[0]  # 分割拿到页数
     # print(page_num)
     return int(page_num)
+
+
+def download_file(file_url, filename, total=3):
+    """
+    下载文件
+    :param file_url: 文件URL
+    :param filename: 文件名
+    :param total: 最大下载次数（防止失败）
+    :return: bool value
+    """
+    try:
+        res = requests.get(file_url)
+        if res.status_code == 200:
+            fp = open(filename, mode='wb')
+            fp.write(res.content)
+            fp.close()
+        else:
+            print('File Not Found:', file_url)
+    except Exception:
+        if total > 0:
+            return download_file(file_url, filename, total - 1)
+        return False
+    return True
+
+
+def write_word_file(filename, title, data_list):
+    """
+    write text data to word file
+    :param filename: word filename, like '/path/filename.doc' or '/path/filename.docx'
+    :param title: title for word file, or maybe None
+    :param data_list: paragraphs of word content
+    :return: None
+    """
+    doc = docx.Document()
+    if title:
+        doc.add_heading(title, 0)
+    for data in data_list:
+        doc.add_paragraph(data)
+    doc.save(filename)
+
+
+def write_excel_file(filename, data_list, sheet_name='Sheet1', columns=None):
+    """
+    write list data to excel file, supporting add new sheet
+    :param filename: excel filename, like '/path/filename.xlsx' or '/path/filename.xls'
+    :param data_list: list data for saving
+    :param sheet_name: excel sheet name, default 'Sheet1'
+    :param columns: excel column names
+    :return: None
+    """
+    writer = pd.ExcelWriter(filename)
+    frame = pd.DataFrame(data_list, columns=columns)
+    book = load_workbook(writer.path)
+    writer.book = book
+    frame.to_excel(excel_writer=writer, sheet_name=sheet_name, index=None)
+    writer.close()
+
+
+def filename_replace(filename):
+    """
+    replace some special characters of filename
+    :param filename: filename before replacing
+    :return: filename after replacing
+    """
+    replace = filename.replace('/', '-').replace('\\', '-').replace(' ', '') \
+        .replace('<', '(').replace('>', ')').replace('"', '-')
+    return replace
